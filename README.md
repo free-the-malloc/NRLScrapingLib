@@ -1,8 +1,14 @@
 # nrl-scraping-lib
 
-A set of functions I put together to scrape match statistics from the National Rugby League website.
+A set of functions for scraping match statistics from the National Rugby League website.
 
-We have a function to read a single match, get_match_data, which takes in the extension of the match url (the string that follows after "www.nrl.com") and the array of attributes to be scraped. Returns a dictionary object.
+The functions require a working version of Chrome. The functions can be a bit heavy on the computer as the webpages are loaded using Selenium, which essentially automates the process of opening a webpage and reading the webpage. Reading the data using simple page requests didn't seem to work, as such I have attempted to make the functions less intensive by playing around with the driver options.
 
-There is a function for reading all the matches in a given round, get_round_data, which takes in a season, round, and a list of attributes, and returns an array of dictionaries, each dict holding the data from a match. 
+- **get_match_data** takes in the match extension (the url extension of the particular match following *www.nrl.com*) and a list of attributes. The *attributes.txt* file contains a list of the team match statistics that are reported. The function returns a dictionary object containing the home and away match statistics.
 
+- **get_round_data** takes in the round, season, and list of attributes to be scraped. It returns a list of dictionary objects (returned from the get_match_data function as well as some general match data). 
+
+# Action List
+
+- Include functionality for FireFox.
+- Include some sample scripts for scraping season and slices of seasons.
