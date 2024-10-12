@@ -1,24 +1,20 @@
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 import time
 
-from get_match_data import get_match_data
+from src.get_match_data import get_match_data
 
-def get_round_data(round,year,attributes):
+def get_round_data(round: int,year: int, attributes: list[str]) -> list[dict]:
     url = f"https://www.nrl.com/draw/?competition=111&round={round}&season={year}"
 
-    options = Options()
-    options.add_argument("--ignore-certificate-errors")
-    options.add_experimental_option("excludeSwitches", ["enable-logging"])
-    options.add_experimental_option(
-        "prefs", {
-            "profile.managed_default_content_settings.images": 2,
-        }
-    )
+    options = webdriver.ChromeOptions()
     options.add_argument("--headless")
-    options.setPageLoadTimeout(10)
+    options.add_argument('--blink-settings=imagesEnabled=false')
+    
     driver = webdriver.Chrome(options=options)
+    driver.set_page_load_timeout(10)
+    
+    # Request the page a maximum of 3 times before quitting
     for i in range(3):
         try:
             driver.get(url)
@@ -61,7 +57,8 @@ def get_round_data(round,year,attributes):
 
             for i in range(0,6):
                 match_general[attribute_name[i]] = match.find(attribute_tag[i],class_=attribute_class[i]).text.strip()
-            
+
+            match_general["Details"] = match_general["Details"].replace("Match: ","")            
             match_general["Home Score"] = int(match_general["Home Score"].replace("Scored","").replace("points","").strip())
             match_general["Away Score"] = int(match_general["Away Score"].replace("Scored","").replace("points","").strip())
 

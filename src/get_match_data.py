@@ -1,23 +1,16 @@
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 import time
 
-def get_match_data(extension,attributes):
+def get_match_data(extension: str,attributes: list[str]) -> dict:
     # Setup the driver and get the match page source
     url = f"https://www.nrl.com{extension}"
-    options = Options()
-    options.add_argument('--ignore-certificate-errors')
-    options.add_experimental_option('excludeSwitches', ['enable-logging'])
+    options = webdriver.ChromeOptions()
     options.add_argument('--headless')
-    options.setPageLoadTimeout(10)
-    options.add_experimental_option(
-        "prefs", {
-            "profile.managed_default_content_settings.images": 2,
-        }
-    )
+    options.add_argument('--blink-settings=imagesEnabled=false')
     driver = webdriver.Chrome(options=options)
-    
+    driver.set_page_load_timeout(10)
+
     # Allow a maximum of 3 page requests before throwing an error
     for i in range(3):
         try:
@@ -74,17 +67,17 @@ def get_match_data(extension,attributes):
                     
                     if stat_box_label == "Average Play The Ball Speed":
                         play_the_ball_speeds = stats_box_i.find_all("p",{"class":play_the_ball_class})
-                        match_data[f"Home {stat_box_label}"] = float(play_the_ball_speeds[0].text.strip("s"))
-                        match_data[f"Away {stat_box_label}"] = float(play_the_ball_speeds[1].text.strip("s"))
+                        match_data[f"Home {stat_box_label}"] = float(play_the_ball_speeds[0].text.strip().replace("s",""))
+                        match_data[f"Away {stat_box_label}"] = float(play_the_ball_speeds[1].text.strip().replace("s",""))
                     
                     if stat_box_label == "Kick Defusal %":
                         kick_defusal = stats_box_i.find_all("p",{"class":"donut-chart-stat__value"})
-                        match_data[f"Home {stat_box_label}"] = int(kick_defusal[0].text.strip("%"))
-                        match_data[f"Away {stat_box_label}"] = int(kick_defusal[1].text.strip("%"))
+                        match_data[f"Home {stat_box_label}"] = int(kick_defusal[0].text.strip().replace("%",""))
+                        match_data[f"Away {stat_box_label}"] = int(kick_defusal[1].text.strip().replace("%",""))
                     
                     if stat_box_label == "Possession %":
-                        match_data[f"Home {stat_box_label}"] = int(stats_box_i.find("p",{"class":home_possession_class}).text.strip("%"))
-                        match_data[f"Away {stat_box_label}"] = int(stats_box_i.find("p",{"class":away_possession_class}).text.strip("%"))
+                        match_data[f"Home {stat_box_label}"] = int(stats_box_i.find("p",{"class":home_possession_class}).text.strip().replace("%",""))
+                        match_data[f"Away {stat_box_label}"] = int(stats_box_i.find("p",{"class":away_possession_class}).text.strip().replace("%",""))
 
             stat_box_label = stats_box_i.find("figcaption").text        
             if stat_box_label in attributes:
@@ -98,8 +91,8 @@ def get_match_data(extension,attributes):
                     away_time = stats_box_i.find("dd",{"class":away_stats_class}).text.strip().split(":")
                     match_data[f"Away {stat_box_label}"] = int(away_time[0]) + (int(away_time[1]) / 60)
                 else:
-                    match_data[f"Home {stat_box_label}"] = int(stats_box_i.find("dd",{"class":home_stats_class}).text.strip(","))
-                    match_data[f"Away {stat_box_label}"] = int(stats_box_i.find("dd",{"class":away_stats_class}).text.strip(","))
+                    match_data[f"Home {stat_box_label}"] = int(stats_box_i.find("dd",{"class":home_stats_class}).text.strip().replace(",",""))
+                    match_data[f"Away {stat_box_label}"] = int(stats_box_i.find("dd",{"class":away_stats_class}).text.strip().replace(",",""))
 
         # Match data read was successful
         return match_data
