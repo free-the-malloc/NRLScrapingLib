@@ -13,6 +13,7 @@ def get_match_data(extension: str,attributes: list[str]) -> dict:
 
     # Allow a maximum of 3 page requests before throwing an error
     for i in range(3):
+        # Attempt to access page
         try:
             driver.get(url)
         except:
@@ -30,7 +31,7 @@ def get_match_data(extension: str,attributes: list[str]) -> dict:
         # Get the team stats tile
         team_stats_box = soup.find_all("div",class_="u-spacing-pb-24 u-spacing-pt-16 u-width-100")
 
-        # Actual data we're looking for will be in an element under these classes
+        # The bulk of the data will be under tiles utilising these classes
         home_stats_class = ["stats-bar-chart__label stats-bar-chart__label--home",
                             "stats-bar-chart__label stats-bar-chart__label--home u-font-weight-700"]
         away_stats_class = ["stats-bar-chart__label stats-bar-chart__label--away",
@@ -46,13 +47,18 @@ def get_match_data(extension: str,attributes: list[str]) -> dict:
 
         play_the_ball_class = "donut-chart-stat__value"
         
+        # Initialise a dictionary object for match data to be held
         match_data = {}
 
+        # Loop through the 
         for stats_box_i in team_stats_box:
+            # Most data will be held in tiles utilising a h3 tag or a figcaption tag
             stat_box_label = stats_box_i.find("h3")
+
             if stat_box_label != None:
                 stat_box_label = stat_box_label.text
-                
+
+                # if statements matching the tag label to an attribute    
                 if stat_box_label in attributes:
                     if stat_box_label == "Completion Rate":
                         completion_rate = stats_box_i.find_all("p",{"class":completion_class})
@@ -94,7 +100,7 @@ def get_match_data(extension: str,attributes: list[str]) -> dict:
                     match_data[f"Home {stat_box_label}"] = int(stats_box_i.find("dd",{"class":home_stats_class}).text.strip().replace(",",""))
                     match_data[f"Away {stat_box_label}"] = int(stats_box_i.find("dd",{"class":away_stats_class}).text.strip().replace(",",""))
 
-        # Match data read was successful
+        # Match data was read successfully, return match data
         return match_data
     
     # Page timed out 3 times
