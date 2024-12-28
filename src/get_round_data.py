@@ -4,7 +4,9 @@ from playwright.sync_api import Page
 
 from src.get_match_data import get_match_data
 
-def grd_matches(url: str, page: Page, attributes: list[str]) -> list[dict]:
+def grd_matches(round: int, year: int, attributes: list[str], page: Page) -> list[dict]:
+    round_data = []
+
     attribute_tag = ["h3", "p", 
                     "p", "div", 
                     "p", "div"]
@@ -17,7 +19,7 @@ def grd_matches(url: str, page: Page, attributes: list[str]) -> list[dict]:
                     "Home","Home Score",
                     "Away","Away Score"]
     
-    round_data = []
+    url = f"https://www.nrl.com/draw/?competition=111&round={round}&season={year}"
 
     page.goto(url)
 
@@ -41,10 +43,6 @@ def grd_matches(url: str, page: Page, attributes: list[str]) -> list[dict]:
         match_general["Home Score"] = int(match_general["Home Score"].replace("Scored","").replace("points","").strip())
         match_general["Away Score"] = int(match_general["Away Score"].replace("Scored","").replace("points","").strip())
 
-        match_url = f"https://www.nrl.com{match_extension["href"]}"
-
-        print(match_url)
-
         # Get the statistics for the match
         match_stats = get_match_data(match_extension["href"],attributes, page)
         
@@ -64,15 +62,15 @@ def get_round_data(round: int,year: int, attributes: list[str], page: Page) -> l
     for parsing. 
     '''
     try:
-        url = f"https://www.nrl.com/draw/?competition=111&round={round}&season={year}"
+        
         if page == None:
             with sync_playwright() as pw:
                 browser = pw.firefox.launch(headless=True)
                 page = browser.new_page()
-                round_data = grd_matches(url, page, attributes)
+                round_data = grd_matches(round, year, attributes, page)
                 browser.close()
         else:
-            round_data = grd_matches(url, page, attributes)
+            round_data = grd_matches(round, year, attributes, page)
     except Exception:
         return None
         
