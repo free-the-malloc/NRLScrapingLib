@@ -1,75 +1,80 @@
 from bs4 import BeautifulSoup
-from selenium import webdriver
-import time
+from playwright.sync_api import sync_playwright
+from playwright.sync_api import Page
 
 from src.get_match_data import get_match_data
 
-def get_round_data(round: int,year: int, attributes: list[str]) -> list[dict]:
-    url = f"https://www.nrl.com/draw/?competition=111&round={round}&season={year}"
-
-    options = webdriver.ChromeOptions()
-    options.add_argument("--headless")
-    options.add_argument('--blink-settings=imagesEnabled=false')
+def grd_matches(url: str, page: Page, attributes: list[str]) -> list[dict]:
+    attribute_tag = ["h3", "p", 
+                    "p", "div", 
+                    "p", "div"]
     
-    driver = webdriver.Chrome(options=options)
-    driver.set_page_load_timeout(10)
+    attribute_class = ["u-visually-hidden", "match-header__title", 
+                    "match-team__name--home", "match-team__score--home", 
+                    "match-team__name--away", "match-team__score--away"]
     
-    # Request the page a maximum of 3 times before quitting
-    for i in range(3):
-        try:
-            driver.get(url)
-        except:
-            driver.quit()
-            continue
+    attribute_name = ["Details","Date",
+                    "Home","Home Score",
+                    "Away","Away Score"]
     
-        page_source = driver.page_source
-        driver.quit()
+    round_data = []
 
-        time.sleep(2)
+    page.goto(url)
 
-        soup = BeautifulSoup(page_source, "html.parser")
+    soup = BeautifulSoup(page.content(), "html.parser")
+
+    # Get each match tile
+    matches = soup.find_all("div", class_="match o-rounded-box o-shadowed-box")
+
+    for match in matches:
+        # Get the extension for the match
+        match_extension = match.find("a", class_ = "match--highlighted u-flex-column u-flex-align-items-center u-width-100")
+
+        match_general = {}
         
-        # Get each match tile
-        matches = soup.find_all("div", class_="match o-rounded-box o-shadowed-box")
+        match_general["Round"] = round
 
-        # Array to hold the stats from each match in the round
-        round_data = []
+        for i in range(0,6):
+            match_general[attribute_name[i]] = match.find(attribute_tag[i],class_=attribute_class[i]).text.strip()
 
-        for match in matches:
-            # Get the extension for the match
-            match_extension = match.find("a", class_="match--highlighted u-flex-column u-flex-align-items-center u-width-100")
+        match_general["Details"] = match_general["Details"].replace("Match: ","")            
+        match_general["Home Score"] = int(match_general["Home Score"].replace("Scored","").replace("points","").strip())
+        match_general["Away Score"] = int(match_general["Away Score"].replace("Scored","").replace("points","").strip())
 
-            match_general = {}
-            
-            attribute_tag = ["h3", "p", 
-                            "p", "div", 
-                            "p", "div"]
-            
-            attribute_class = ["u-visually-hidden", "match-header__title", 
-                            "match-team__name--home", "match-team__score--home", 
-                            "match-team__name--away", "match-team__score--away"]
-            
-            attribute_name = ["Details","Date",
-                            "Home","Home Score",
-                            "Away","Away Score"]
-            
-            match_general["Round"] = round
+        match_url = f"https://www.nrl.com{match_extension["href"]}"
 
-            for i in range(0,6):
-                match_general[attribute_name[i]] = match.find(attribute_tag[i],class_=attribute_class[i]).text.strip()
+        print(match_url)
 
-            match_general["Details"] = match_general["Details"].replace("Match: ","")            
-            match_general["Home Score"] = int(match_general["Home Score"].replace("Scored","").replace("points","").strip())
-            match_general["Away Score"] = int(match_general["Away Score"].replace("Scored","").replace("points","").strip())
-
-            # Get the statistics for the match
-            match_stats = get_match_data(match_extension["href"],attributes)
-            
-            # If the stats from a round couldn't be scraped, return none
-            if match_stats == None:
-                return None
-            # Otherwise append the match stats to the array
-            round_data.append({**match_general,**match_stats})
-        return round_data
+        # Get the statistics for the match
+        match_stats = get_match_data(match_extension["href"],attributes, page)
+        
+        # If the stats from a round couldn't be scraped, return none
+        if match_stats == None:
+            return None
+        # Otherwise append the match stats to the array
+        round_data.append({**match_general,**match_stats})
     
-    return None
+    return round_data
+
+
+def get_round_data(round: int,year: int, attributes: list[str], page: Page) -> list[dict]:
+    '''
+    Maintain a single browser session, parsing each match page into a 
+    BeautifulSoup object then passing that over to the get_match_data function 
+    for parsing. 
+    '''
+    try:
+        url = f"https://www.nrl.com/draw/?competition=111&round={round}&season={year}"
+        if page == None:
+            with sync_playwright() as pw:
+                browser = pw.firefox.launch(headless=True)
+                page = browser.new_page()
+                round_data = grd_matches(url, page, attributes)
+                browser.close()
+        else:
+            round_data = grd_matches(url, page, attributes)
+    except Exception:
+        return None
+        
+    return round_data
+    

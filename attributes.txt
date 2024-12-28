@@ -28,5 +28,7 @@
 "Penalties Conceded",
 "Ruck Infringements",
 "Inside 10 Metres",
+"On Reports",
 "Sin Bins",
-"Used"
+"Used",
+"Head Injury Assessment"
