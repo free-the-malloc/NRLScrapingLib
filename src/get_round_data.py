@@ -2,7 +2,7 @@ from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 from playwright.sync_api import Page
 
-from src.get_match_data import get_match_data
+from .get_match_data import get_match_data
 
 def grd_matches(round: int, year: int, attributes: list[str], page: Page) -> list[dict]:
     round_data = []
