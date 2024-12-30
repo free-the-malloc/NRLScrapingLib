@@ -8,17 +8,6 @@ in a match as indicated by the url extension supplied. The first list holds
 the home team's players, and the second list holds the away teams players.
 """
 def get_player_stats(extension: str, page: Page):
-    # try:
-    #     if page == None:
-    #         with sync_playwright() as pw:
-    #             browser = pw.firefox.launch(headless=True)
-    #             page = browser.new_page()
-    #             match_data = get_player_stats(extension, page)
-    #             browser.close()
-    #             return match_data
-    # except Exception:
-    #     return None
-    
     if page == None:
         with sync_playwright() as pw:
             browser = pw.firefox.launch(headless=True)
@@ -37,10 +26,7 @@ def get_player_stats(extension: str, page: Page):
     tables = player_stats_box.find_all("table")
 
     features = tables[0].find("thead").find_all("tr")[1].find_all("th")
-    # features = []
-    # for feature in cols:
-    #     features.append(feature.text.strip())
-        
+
     match_data = []
 
     for table in tables:
@@ -48,17 +34,14 @@ def get_player_stats(extension: str, page: Page):
         players = table_body.find_all("tr")
 
         player_dicts = []
-        # team_lineup = dict()
 
         for player in players[0:1]:
             player_data = dict()
             player_stats = player.find_all("td")
             player_name = "_".join(player_stats[1].text.strip().lower().split())
             
-            # print(player_data["Player"])
 
             for feature in zip(features,player_stats):
-                # feature_name = feature[0].text.strip()
                 feature_name = " ".join(feature[0].text.strip().split())
                 if feature_name == "":
                     continue
@@ -66,7 +49,6 @@ def get_player_stats(extension: str, page: Page):
                 stat = feature[1].text.strip()
 
                 if feature_name == "Number":
-                    # team_lineup[int(stat)] = player_name
                     if int(stat) > 17:
                         stat = 18
                     player_data[feature_name] = int(stat)
@@ -87,11 +69,3 @@ def get_player_stats(extension: str, page: Page):
         match_data.append(player_dicts)
     
     return match_data
-
-# data = get_player_stats("/draw/nrl-premiership/2024/round-20/raiders-v-warriors/",None)
-
-# for key in data[0][0].keys():
-#     print(data[0][0][key])
-
-# for key in data[0][1][0].keys():
-#     print(f"{key} : {data[0][1][0][key]}")
