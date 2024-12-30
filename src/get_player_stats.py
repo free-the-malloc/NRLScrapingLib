@@ -57,7 +57,7 @@ def get_player_stats(extension: str, page: Page):
                 elif (feature_name == "Mins Played") or (feature_name == "Stint One") or (feature_name == "Stint Two"):
                     time_crunch = [int(x) for x in stat.split(":")]
                     player_data[feature_name] = (time_crunch[0] * 60) + time_crunch[1]
-                elif feature_name == "Tackle Efficiency":
+                elif feature_name == "Tackle Efficiency" or feature_name == "Goal Conversion Rate":
                     player_data[feature_name] = round(float(stat.strip("%")), 2)
                 elif feature_name == "Average Play The Ball Speed" or feature_name == "Passes To Run Ratio":
                     player_data[feature_name] = round(float(stat.strip("s")), 2)
