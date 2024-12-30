@@ -62,7 +62,6 @@ def get_round_data(round: int,year: int, attributes: list[str], page: Page) -> l
     for parsing. 
     '''
     try:
-        
         if page == None:
             with sync_playwright() as pw:
                 browser = pw.firefox.launch(headless=True)
