@@ -27,21 +27,30 @@ def get_match_data(extension: str, attributes: list[str], page: Page) -> dict:
     '''
 
     try:
-        url = f"https://www.nrl.com{extension}"
         if page == None:
             with sync_playwright() as pw:
                 browser = pw.firefox.launch(headless=True)
                 page = browser.new_page()
-
-                page.goto(url)
-                soup = BeautifulSoup(page.content(), "html.parser")
+                match_data = get_match_data(extension,attributes,page)
                 browser.close()
-        else:
+                return match_data
+    except Exception as err:
+        raise err
+
+    url = f"https://www.nrl.com{extension}"
+
+    retry_count = 0
+    while True:
+        try:
             page.goto(url)
-            soup = BeautifulSoup(page.content(), "html.parser")
-    except Exception:
-        print("page timed out")
-        return None
+            break
+        except Exception:
+            retry_count += 1
+            if retry_count == 3:
+                print(f"get_match_data: couldn't load page, extension: {extension}")
+                raise Exception("get_match_data")
+    
+    soup = BeautifulSoup(page.content(), "html.parser")
 
     # Get the main team stats tile, then locate each individual stats tile
     team_stats_box = soup.find("div", id="tabs-match-centre-3", 

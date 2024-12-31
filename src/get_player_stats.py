@@ -8,38 +8,54 @@ in a match as indicated by the url extension supplied. The first list holds
 the home team's players, and the second list holds the away teams players.
 """
 def get_player_stats(extension: str, page: Page):
-    if page == None:
-        with sync_playwright() as pw:
-            browser = pw.firefox.launch(headless=True)
-            page = browser.new_page()
-            match_data = get_player_stats(extension, page)
-            browser.close()
-            return match_data
+    try:
+        if page == None:
+            with sync_playwright() as pw:
+                browser = pw.firefox.launch(headless=True)
+                page = browser.new_page()
+                match_data = get_player_stats(extension, page)
+                browser.close()
+                return match_data
+    except Exception as err:
+        raise err
     
     url = f"https://www.nrl.com{extension}"
 
-    page.goto(url)
+    retry_count = 0
+    while True:
+        try:
+            page.goto(url)
+            break
+        except Exception:
+            retry_count += 1
+            if retry_count == 3:
+                print(f"get_player_stats: retry count exceeded, url extension: {extension}")
+                raise Exception("get_player_stats: retry count exceeded.")
+
+
     soup = BeautifulSoup(page.content(), "html.parser")
 
     player_stats_box = soup.find("div", id="tabs-match-centre-4", 
                                class_="tabs__panel").find("div",id="player-stats")
     tables = player_stats_box.find_all("table")
+    tables = [tables[1], tables[3]]
 
     features = tables[0].find("thead").find_all("tr")[1].find_all("th")
 
     match_data = []
 
     for table in tables:
+        features = table.find("thead").find_all("tr")[1].find_all("th")
         table_body = table.find("tbody")
         players = table_body.find_all("tr")
 
-        player_dicts = []
-
-        for player in players[0:1]:
+        team_data = []
+        last_read = 0
+    
+        for player in players:
             player_data = dict()
             player_stats = player.find_all("td")
-            player_name = "_".join(player_stats[1].text.strip().lower().split())
-            
+            player_data["Player"] = "_".join(player_stats[1].text.strip().lower().split())
 
             for feature in zip(features,player_stats):
                 feature_name = " ".join(feature[0].text.strip().split())
@@ -49,8 +65,12 @@ def get_player_stats(extension: str, page: Page):
                 stat = feature[1].text.strip()
 
                 if feature_name == "Number":
-                    if int(stat) > 17:
-                        stat = 18
+                    if int(stat) > 17: # handle replacement/interchange players with irregular numbers
+                        if last_read > 17:
+                            last_read += 1
+                        else:
+                            last_read = 18
+                        stat = last_read
                     player_data[feature_name] = int(stat)
                 elif stat == "" or stat == "-" or feature_name == "Position" or feature_name == "Player":
                     continue
@@ -64,8 +84,6 @@ def get_player_stats(extension: str, page: Page):
                 else:
                     player_data[feature_name] = int(stat)
 
-            player_dicts.append(player_data)
-        
-        match_data.append(player_dicts)
-    
+            team_data.append(player_data)
+        match_data.append(team_data)       
     return match_data
